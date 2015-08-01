@@ -3,8 +3,12 @@ module Bingo where
 import Html
 import String
 
+title message times =
+  message ++ " "
+    |> String.toUpper
+    |> String.repeat times
+    |> String.trimRight
+    |> Html.text
+
 main =
-  "bingo!"
-  |> String.toUpper
-  |> String.repeat 3
-  |> Html.text
+  title "bingo!" 3
