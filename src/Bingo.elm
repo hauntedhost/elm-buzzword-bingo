@@ -1,7 +1,7 @@
 module Bingo where
 
-import List exposing (filter, foldl, map, sortBy)
-import String exposing (repeat, toUpper, trimRight)
+import List exposing (all, filter, foldl, length, map, sortBy)
+import String exposing (isEmpty, repeat, toUpper, trimRight)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -25,17 +25,20 @@ type alias Model =
     nextId: Int
   }
 
+initialEntries : List Entry
+initialEntries =
+  [ newEntry "Doing Agile"     200 2,
+    newEntry "Rock-Star Ninja" 400 4,
+    newEntry "Future-Proof"    150 1,
+    newEntry "In The Cloud"    325 3
+  ]
+
 initialModel : Model
 initialModel =
-  { entries =
-      [ newEntry "Doing Agile"     200 2,
-        newEntry "Rock-Star Ninja" 400 4,
-        newEntry "Future-Proof"    150 1,
-        newEntry "In The Cloud"    325 3
-      ],
+  { entries = initialEntries,
     phraseInput = "",
     pointsInput = "",
-    nextId = 5
+    nextId = length initialEntries + 1
   }
 
 newEntry : String -> Int -> Int -> Entry
@@ -50,8 +53,9 @@ newEntry phrase points id =
 
 type Action
   = NoOp
-  | Mark Int
+  | Add
   | Delete Int
+  | Mark Int
   | Sort
   | UpdatePhraseInput String
   | UpdatePointsInput String
@@ -61,12 +65,37 @@ update action model =
   case action of
     NoOp -> model
 
-    Mark id   -> { model | entries <- markEntry id model.entries }
+    Add       -> if isValidEntry model then addNewEntry model else model
     Delete id -> { model | entries <- deleteEntry id model.entries }
+    Mark id   -> { model | entries <- markEntry id model.entries }
     Sort      -> { model | entries <- sortEntries model.entries }
 
     UpdatePhraseInput contents -> { model | phraseInput <- contents }
     UpdatePointsInput contents -> { model | pointsInput <- contents }
+
+isValidEntry : Model -> Bool
+isValidEntry model =
+  all (\val -> isPresent val) [model.phraseInput, model.pointsInput]
+
+isPresent : String -> Bool
+isPresent string = not (isEmpty string)
+
+addNewEntry : Model -> Model
+addNewEntry model =
+  { model |
+      phraseInput <- "",
+      pointsInput <- "",
+      entries     <- entryFromModel model :: model.entries,
+      nextId      <- model.nextId + 1
+  }
+
+entryFromModel : Model -> Entry
+entryFromModel model =
+  newEntry model.phraseInput (Utils.parseInt model.pointsInput) model.nextId
+
+deleteEntry : Int -> List Entry -> List Entry
+deleteEntry id entries =
+  reject (\e -> e.id == id) entries
 
 reject : (a -> Bool) -> List a -> List a
 reject fn list =
@@ -78,10 +107,6 @@ markEntry id entries =
     if e.id == id then { e | wasSpoken <- (not e.wasSpoken) } else e
   in
     map mark entries
-
-deleteEntry : Int -> List Entry -> List Entry
-deleteEntry id entries =
-  reject (\e -> e.id == id) entries
 
 sortEntries : List Entry -> List Entry
 sortEntries entries =
@@ -158,7 +183,7 @@ entryForm address model =
           Utils.onInput address UpdatePointsInput
         ]
         [ ],
-      button [ class "add" ] [ text "Add" ],
+      button [ class "add", onClick address Add ] [ text "Add" ],
       h2 [ ] [ text (model.phraseInput ++ " " ++ model.pointsInput) ]
     ]
 
