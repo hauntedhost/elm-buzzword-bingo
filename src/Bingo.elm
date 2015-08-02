@@ -3,7 +3,21 @@ module Bingo where
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import List exposing (map)
 import String exposing (repeat, toUpper, trimRight)
+
+-- MODEL
+
+initialModel =
+  {
+    entries =
+      [
+        newEntry "Future-Proof"    150 1,
+        newEntry "Doing Agile"     200 2,
+        newEntry "In The Cloud"    325 3,
+        newEntry "Rock-Star Ninja" 400 4
+      ]
+  }
 
 newEntry phrase points id =
   {
@@ -12,6 +26,8 @@ newEntry phrase points id =
     phrase = phrase,
     wasSpoken = False
   }
+
+-- VIEW
 
 title message times =
   message ++ " "
@@ -36,20 +52,18 @@ entryItem entry =
       span [ class "points" ] [ text (toString entry.points) ]
     ]
 
-entryList =
-  ul [ ]
-    [
-      entryItem (newEntry "Future-Proof" 100 1),
-      entryItem (newEntry "Doing Agile" 200 2)
-    ]
+entryList entries =
+  ul [ ] (map entryItem entries)
 
-view =
+view model =
   div [ id "container" ]
     [
       pageHeader,
-      entryList,
+      entryList model.entries,
       pageFooter
     ]
 
+-- MAIN
+
 main =
-  view
+  view initialModel
