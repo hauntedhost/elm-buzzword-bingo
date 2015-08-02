@@ -13,16 +13,16 @@ import BingoUtils as Utils
 
 type alias Entry =
   { id: Int,
-    points: Int,
     phrase: String,
+    points: Int,
     wasSpoken: Bool
   }
 
 type alias Model =
   { entries: List Entry,
+    nextId: Int,
     phraseInput: String,
-    pointsInput: String,
-    nextId: Int
+    pointsInput: String
   }
 
 initialEntries : List Entry
@@ -36,16 +36,16 @@ initialEntries =
 initialModel : Model
 initialModel =
   { entries = initialEntries,
+    nextId = length initialEntries + 1,
     phraseInput = "",
-    pointsInput = "",
-    nextId = length initialEntries + 1
+    pointsInput = ""
   }
 
 newEntry : String -> Int -> Int -> Entry
 newEntry phrase points id =
   { id = id,
-    points = points,
     phrase = phrase,
+    points = points,
     wasSpoken = False
   }
 
@@ -65,7 +65,7 @@ update action model =
   case action of
     NoOp -> model
 
-    Add       -> if isValidEntry model then addNewEntry model else model
+    Add       -> if hasValidEntry model then addNewEntry model else model
     Delete id -> { model | entries <- deleteEntry id model.entries }
     Mark id   -> { model | entries <- markEntry id model.entries }
     Sort      -> { model | entries <- sortEntries model.entries }
@@ -73,8 +73,8 @@ update action model =
     UpdatePhraseInput contents -> { model | phraseInput <- contents }
     UpdatePointsInput contents -> { model | pointsInput <- contents }
 
-isValidEntry : Model -> Bool
-isValidEntry model =
+hasValidEntry : Model -> Bool
+hasValidEntry model =
   all (\val -> isPresent val) [model.phraseInput, model.pointsInput]
 
 isPresent : String -> Bool
@@ -153,7 +153,7 @@ totalItem : Int -> Html
 totalItem total =
   li
     [ class "total" ]
-    [ span [ class "label" ] [ text "Total"],
+    [ span [ class "label" ] [ text "Total" ],
       span [ class "points"] [ text (toString total) ]
     ]
 
