@@ -1,7 +1,6 @@
 module Bingo where
 
-import List exposing (all, filter, foldl, length, map, maximum, sortBy)
-import Maybe exposing (withDefault)
+import List exposing (all, filter, foldl, length, map, sortBy)
 import String exposing (isEmpty, repeat, toUpper, trimRight)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -39,11 +38,8 @@ initialEntries =
   ]
 
 initialNextEntryId =
-  initialEntries
-    |> map .id
-    |> maximum
-    |> withDefault 0
-    |> (+) 1
+  let max a b = if a > b then a else b
+  in foldl (\e id -> max e.id id) 0 initialEntries + 1
 
 initialModel : Model
 initialModel =
