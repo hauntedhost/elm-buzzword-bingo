@@ -1,6 +1,6 @@
 module Bingo where
 
-import List exposing (filter, map, sortBy, sum)
+import List exposing (filter, foldl, map, sortBy)
 import String exposing (repeat, toUpper, trimRight)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -85,8 +85,7 @@ entryItem address entry =
 totalPoints entries =
   entries
     |> filter .wasSpoken
-    |> map .points
-    |> sum
+    |> foldl (\e sum -> sum + e.points) 0
 
 totalItem total =
   li
