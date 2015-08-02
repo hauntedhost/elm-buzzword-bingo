@@ -1,6 +1,6 @@
 module Bingo where
 
-import List exposing (filter, map, sortBy)
+import List exposing (filter, map, sortBy, sum)
 import String exposing (repeat, toUpper, trimRight)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -44,8 +44,10 @@ reject fn list =
   filter (\n -> not (fn n)) list
 
 markEntry id entries =
-  let mark e = if e.id == id then { e | wasSpoken <- (not e.wasSpoken) } else e
-  in map mark entries
+  let mark e =
+    if e.id == id then { e | wasSpoken <- (not e.wasSpoken) } else e
+  in
+    map mark entries
 
 deleteEntry id entries =
   reject (\e -> e.id == id) entries
@@ -80,9 +82,25 @@ entryItem address entry =
         [ ]
     ]
 
+totalPoints entries =
+  entries
+    |> filter .wasSpoken
+    |> map .points
+    |> sum
+
+totalItem total =
+  li
+    [ class "total" ]
+    [ span [ class "label" ] [ text "Total"],
+      span [ class "points"] [ text (toString total) ]
+    ]
+
 entryList address entries =
-  let entryItems = map (entryItem address) entries
-  in ul [ ] entryItems
+  let
+    entryItems = map (entryItem address) entries
+    items = entryItems ++ [ totalItem (totalPoints entries) ]
+  in
+    ul [ ] items
 
 view address model =
   div [ id "container" ]
