@@ -10,10 +10,8 @@ import StartApp
 -- MODEL
 
 initialModel =
-  {
-    entries =
-      [
-        newEntry "Doing Agile"     200 2,
+  { entries =
+      [ newEntry "Doing Agile"     200 2,
         newEntry "Rock-Star Ninja" 400 4,
         newEntry "Future-Proof"    150 1,
         newEntry "In The Cloud"    325 3
@@ -21,8 +19,7 @@ initialModel =
   }
 
 newEntry phrase points id =
-  {
-    id = id,
+  { id = id,
     points = points,
     phrase = phrase,
     wasSpoken = False
@@ -32,23 +29,29 @@ newEntry phrase points id =
 
 type Action
   = NoOp
+  | Mark Int
   | Delete Int
   | Sort
-
-reject fn list =
-  filter (\n -> not (fn n)) list
-
--- examples:
--- rejectBy String.length 3 [ "hello", "abc", "goodbye" ]
--- rejectBy .id 2 [ { id = 1, name = "sean" }, { id = 2, name = "alli" } ]
-rejectBy property value list =
-  reject (\item -> (property item) == value) list
 
 update action model =
   case action of
     NoOp      -> model
-    Sort      -> { model | entries <- sortBy .points model.entries }
-    Delete id -> { model | entries <- rejectBy .id id model.entries }
+    Mark id   -> { model | entries <- markEntry id model.entries }
+    Delete id -> { model | entries <- deleteEntry id model.entries }
+    Sort      -> { model | entries <- sortEntries model.entries }
+
+reject fn list =
+  filter (\n -> not (fn n)) list
+
+markEntry id entries =
+  let mark e = if e.id == id then { e | wasSpoken <- (not e.wasSpoken) } else e
+  in map mark entries
+
+deleteEntry id entries =
+  reject (\e -> e.id == id) entries
+
+sortEntries entries =
+  sortBy .points entries
 
 -- VIEW
 
@@ -64,14 +67,13 @@ pageHeader =
 
 pageFooter =
   footer [ ]
-    [
-      a [ href "http://seanomlor.com" ] [ text "Sean Omlor" ]
-    ]
+    [ a [ href "http://seanomlor.com" ] [ text "Sean Omlor" ] ]
 
 entryItem address entry =
-  li [ ]
-    [
-      span [ class "phrase" ] [ text entry.phrase ],
+  li
+    [ classList [ ("highlight", entry.wasSpoken) ],
+      onClick address (Mark entry.id) ]
+    [ span [ class "phrase" ] [ text entry.phrase ],
       span [ class "points" ] [ text (toString entry.points) ],
       button
         [ class "delete", onClick address (Delete entry.id) ]
@@ -79,15 +81,12 @@ entryItem address entry =
     ]
 
 entryList address entries =
-  let
-    entryItems = map (entryItem address) entries
-  in
-    ul [ ] entryItems
+  let entryItems = map (entryItem address) entries
+  in ul [ ] entryItems
 
 view address model =
   div [ id "container" ]
-    [
-      pageHeader,
+    [ pageHeader,
       entryList address model.entries,
       button
         [ class "sort", onClick address Sort ]
