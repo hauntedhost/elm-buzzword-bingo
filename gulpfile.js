@@ -11,8 +11,8 @@ var onError = function(error) {
 
 // elm build
 gulp.task('elm-init', elm.init);
-gulp.task('elm', ['elm-init'], function(){
-  return gulp.src('src/*.elm')
+gulp.task('elm', ['elm-init'], function() {
+  return gulp.src('src/Bingo.elm')
     .pipe(plumber({
       errorHandler: onError
     }))
