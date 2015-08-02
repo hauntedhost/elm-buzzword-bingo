@@ -1,10 +1,11 @@
 module Bingo where
 
+import List exposing (map, sortBy)
+import String exposing (repeat, toUpper, trimRight)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import List exposing (map, sortBy)
-import String exposing (repeat, toUpper, trimRight)
+import StartApp
 
 -- MODEL
 
@@ -66,17 +67,22 @@ entryItem entry =
 entryList entries =
   ul [ ] (map entryItem entries)
 
-view model =
+view address model =
   div [ id "container" ]
     [
       pageHeader,
       entryList model.entries,
+      button
+        [ class "sort", onClick address Sort ]
+        [ text "Sort" ],
       pageFooter
     ]
 
 -- MAIN
 
 main =
-  initialModel
-    |> update Sort
-    |> view
+  StartApp.start {
+    model  = initialModel,
+    view   = view,
+    update = update
+  }

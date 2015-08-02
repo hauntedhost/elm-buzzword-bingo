@@ -58,6 +58,10 @@ footer a {
   color: inherit;
 }
 
+button:hover {
+  cursor: pointer;
+}
+
 button.sort {
   border: 0;
   height: 40px;
