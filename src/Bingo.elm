@@ -18,11 +18,15 @@ type alias Entry =
     wasSpoken: Bool
   }
 
+type alias InputFields =
+  { phrase: String,
+    points: String
+  }
+
 type alias Model =
   { entries: List Entry,
-    nextId: Int,
-    phraseInput: String,
-    pointsInput: String
+    nextEntryId: Int,
+    inputFields: InputFields
   }
 
 initialEntries : List Entry
@@ -33,12 +37,18 @@ initialEntries =
     newEntry "In The Cloud"    325 3
   ]
 
+initialNextEntryId =
+  let max a b = if a > b then a else b
+  in foldl (\e id -> max e.id id) 0 initialEntries + 1
+
 initialModel : Model
 initialModel =
   { entries = initialEntries,
-    nextId = length initialEntries + 1,
-    phraseInput = "",
-    pointsInput = ""
+    nextEntryId = initialNextEntryId,
+    inputFields = {
+      phrase = "",
+      points = ""
+    }
   }
 
 newEntry : String -> Int -> Int -> Entry
@@ -70,28 +80,47 @@ update action model =
     Mark id   -> { model | entries <- markEntry id model.entries }
     Sort      -> { model | entries <- sortEntries model.entries }
 
-    UpdatePhraseInput contents -> { model | phraseInput <- contents }
-    UpdatePointsInput contents -> { model | pointsInput <- contents }
+    UpdatePhraseInput contents ->
+      let currentInputFields = model.inputFields
+      in { model | inputFields <- { currentInputFields | phrase <- contents }}
+
+    UpdatePointsInput contents ->
+      let currentInputFields = model.inputFields
+      in { model | inputFields <- { currentInputFields | points <- contents }}
+
+-- TODO: generic field update function
+-- updateInputField model value field =
+-- ???
 
 hasValidEntry : Model -> Bool
 hasValidEntry model =
-  all (\val -> isPresent val) [model.phraseInput, model.pointsInput]
+  let
+    phraseInput = model.inputFields.phrase
+    pointsInput = model.inputFields.points
+  in
+    all (\val -> isPresent val) [ phraseInput, pointsInput ]
 
 isPresent : String -> Bool
 isPresent string = not (isEmpty string)
 
 addNewEntry : Model -> Model
 addNewEntry model =
-  { model |
-      phraseInput <- "",
-      pointsInput <- "",
-      entries     <- entryFromModel model :: model.entries,
-      nextId      <- model.nextId + 1
-  }
+  let
+    currentInputFields = model.inputFields
+  in
+    { model |
+        nextEntryId  <- model.nextEntryId + 1,
+        inputFields  <- { currentInputFields | phrase <- "", points <- "" },
+        entries      <- entryFromModel model :: model.entries
+    }
 
 entryFromModel : Model -> Entry
 entryFromModel model =
-  newEntry model.phraseInput (Utils.parseInt model.pointsInput) model.nextId
+  let
+    phraseInput = model.inputFields.phrase
+    pointsInput = (Utils.parseInt model.inputFields.points)
+  in
+    newEntry phraseInput pointsInput model.nextEntryId
 
 deleteEntry : Int -> List Entry -> List Entry
 deleteEntry id entries =
@@ -103,8 +132,9 @@ reject fn list =
 
 markEntry : Int -> List Entry -> List Entry
 markEntry id entries =
-  let mark e =
-    if e.id == id then { e | wasSpoken <- (not e.wasSpoken) } else e
+  let mark entry =
+    if | entry.id == id -> { entry | wasSpoken <- (not entry.wasSpoken) }
+       | otherwise      -> entry
   in
     map mark entries
 
@@ -134,7 +164,8 @@ pageFooter =
 entryItem : Address Action -> Entry -> Html
 entryItem address entry =
   li
-    [ classList [ ("highlight", entry.wasSpoken) ],
+    [ id ("entry-id-" ++ toString entry.id),
+      classList [ ("highlight", entry.wasSpoken) ],
       onClick address (Mark entry.id) ]
     [ span [ class "phrase" ] [ text entry.phrase ],
       span [ class "points" ] [ text (toString entry.points) ],
@@ -167,25 +198,29 @@ entryList address entries =
 
 entryForm : Address Action -> Model -> Html
 entryForm address model =
-  div [ ]
-    [ input
-        [ type' "text",
-          placeholder "Phrase",
-          value model.phraseInput,
-          autofocus True,
-          Utils.onInput address UpdatePhraseInput
-        ]
-        [ ],
-      input
-        [ type' "number",
-          placeholder "Points",
-          value model.pointsInput,
-          Utils.onInput address UpdatePointsInput
-        ]
-        [ ],
-      button [ class "add", onClick address Add ] [ text "Add" ],
-      h2 [ ] [ text (model.phraseInput ++ " " ++ model.pointsInput) ]
-    ]
+  let
+    phraseInput = model.inputFields.phrase
+    pointsInput = model.inputFields.points
+  in
+    div [ ]
+      [ input
+          [ type' "text",
+            placeholder "Phrase",
+            value phraseInput,
+            autofocus True,
+            Utils.onInput address UpdatePhraseInput
+          ]
+          [ ],
+        input
+          [ type' "number",
+            placeholder "Points",
+            value pointsInput,
+            Utils.onInput address UpdatePointsInput
+          ]
+          [ ],
+        button [ class "add", onClick address Add ] [ text "Add" ],
+        h2 [ ] [ text (phraseInput ++ " " ++ pointsInput) ]
+      ]
 
 view : Signal.Address Action -> Model -> Html
 view address model =
