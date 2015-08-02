@@ -5,10 +5,22 @@ import String exposing (repeat, toUpper, trimRight)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Signal exposing (Address)
 import StartApp
 
 -- MODEL
 
+type alias Entry =
+  { id: Int,
+    points: Int,
+    phrase: String,
+    wasSpoken: Bool
+  }
+
+type alias Model =
+  { entries: List Entry }
+
+initialModel : Model
 initialModel =
   { entries =
       [ newEntry "Doing Agile"     200 2,
@@ -18,6 +30,7 @@ initialModel =
       ]
   }
 
+newEntry : String -> Int -> Int -> Entry
 newEntry phrase points id =
   { id = id,
     points = points,
@@ -33,6 +46,7 @@ type Action
   | Delete Int
   | Sort
 
+update : Action -> Model -> Model
 update action model =
   case action of
     NoOp      -> model
@@ -40,23 +54,28 @@ update action model =
     Delete id -> { model | entries <- deleteEntry id model.entries }
     Sort      -> { model | entries <- sortEntries model.entries }
 
+reject : (a -> Bool) -> List a -> List a
 reject fn list =
   filter (\n -> not (fn n)) list
 
+markEntry : Int -> List Entry -> List Entry
 markEntry id entries =
   let mark e =
     if e.id == id then { e | wasSpoken <- (not e.wasSpoken) } else e
   in
     map mark entries
 
+deleteEntry : Int -> List Entry -> List Entry
 deleteEntry id entries =
   reject (\e -> e.id == id) entries
 
+sortEntries : List Entry -> List Entry
 sortEntries entries =
   sortBy .points entries
 
 -- VIEW
 
+title : String -> Int -> Html
 title message times =
   message ++ " "
     |> toUpper
@@ -64,13 +83,16 @@ title message times =
     |> trimRight
     |> text
 
+pageHeader : Html
 pageHeader =
   h1 [ id "title" ] [ title "bingo!" 3 ]
 
+pageFooter : Html
 pageFooter =
   footer [ ]
     [ a [ href "http://seanomlor.com" ] [ text "Sean Omlor" ] ]
 
+entryItem : Address Action -> Entry -> Html
 entryItem address entry =
   li
     [ classList [ ("highlight", entry.wasSpoken) ],
@@ -82,11 +104,13 @@ entryItem address entry =
         [ ]
     ]
 
+totalPoints : List Entry -> Int
 totalPoints entries =
   entries
     |> filter .wasSpoken
     |> foldl (\e sum -> sum + e.points) 0
 
+totalItem : Int -> Html
 totalItem total =
   li
     [ class "total" ]
@@ -94,6 +118,7 @@ totalItem total =
       span [ class "points"] [ text (toString total) ]
     ]
 
+entryList : Address Action -> List Entry -> Html
 entryList address entries =
   let
     entryItems = map (entryItem address) entries
@@ -101,6 +126,7 @@ entryList address entries =
   in
     ul [ ] items
 
+view : Signal.Address Action -> Model -> Html
 view address model =
   div [ id "container" ]
     [ pageHeader,
@@ -113,6 +139,7 @@ view address model =
 
 -- MAIN
 
+main : Signal Html
 main =
   StartApp.start {
     model  = initialModel,
