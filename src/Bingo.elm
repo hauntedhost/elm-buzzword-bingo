@@ -1,6 +1,6 @@
 module Bingo where
 
-import List exposing (map, sortBy)
+import List exposing (filter, map, sortBy)
 import String exposing (repeat, toUpper, trimRight)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -32,12 +32,23 @@ newEntry phrase points id =
 
 type Action
   = NoOp
+  | Delete Int
   | Sort
+
+reject fn list =
+  filter (\n -> not (fn n)) list
+
+-- examples:
+-- rejectBy String.length 3 [ "hello", "abc", "goodbye" ]
+-- rejectBy .id 2 [ { id = 1, name = "sean" }, { id = 2, name = "alli" } ]
+rejectBy property value list =
+  reject (\item -> (property item) == value) list
 
 update action model =
   case action of
-    NoOp -> model
-    Sort -> { model | entries <- sortBy .points model.entries }
+    NoOp      -> model
+    Sort      -> { model | entries <- sortBy .points model.entries }
+    Delete id -> { model | entries <- rejectBy .id id model.entries }
 
 -- VIEW
 
