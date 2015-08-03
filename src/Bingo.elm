@@ -47,7 +47,7 @@ initialModel =
 
 initialNextEntryId =
   let max a b = if a > b then a else b
-  in foldl (\e id -> max e.id id) 0 initialEntries + 1
+  in foldl (\entry id -> max entry.id id) 0 initialEntries + 1
 
 newEntry : String -> Int -> Int -> Entry
 newEntry phrase points id =
@@ -105,7 +105,7 @@ addNewEntry model =
 
 deleteEntry : Int -> List Entry -> List Entry
 deleteEntry id entries =
-  reject (\e -> e.id == id) entries
+  reject (\entry -> entry.id == id) entries
 
 markEntry : Int -> List Entry -> List Entry
 markEntry id entries =
@@ -205,7 +205,7 @@ totalPoints : List Entry -> Int
 totalPoints entries =
   entries
     |> filter .wasSpoken
-    |> foldl (\e sum -> sum + e.points) 0
+    |> foldl (\entry sum -> sum + entry.points) 0
 
 -- MAIN
 
