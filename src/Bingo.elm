@@ -109,11 +109,11 @@ deleteEntry id entries =
 
 markEntry : Int -> List Entry -> List Entry
 markEntry id entries =
-  let mark entry =
+  let markMatching entry =
     if | entry.id == id -> { entry | wasSpoken <- (not entry.wasSpoken) }
        | otherwise      -> entry
   in
-    map mark entries
+    map markMatching entries
 
 sortEntries : List Entry -> List Entry
 sortEntries entries =
