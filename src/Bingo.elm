@@ -81,16 +81,15 @@ update action model =
     Sort      -> { model | entries <- sortEntries model.entries }
 
     UpdatePhraseInput contents ->
-      let currentInputFields = model.inputFields
-      in { model | inputFields <- { currentInputFields | phrase <- contents }}
+      let currentFields = model.inputFields
+      in { model | inputFields <- { currentFields | phrase <- contents }}
 
     UpdatePointsInput contents ->
-      let currentInputFields = model.inputFields
-      in { model | inputFields <- { currentInputFields | points <- contents }}
+      let currentFields = model.inputFields
+      in { model | inputFields <- { currentFields | points <- contents }}
 
 -- TODO: generic field update function
--- updateInputField model value field =
--- ???
+--updateInputField model value field =
 
 hasValidEntry : Model -> Bool
 hasValidEntry model =
