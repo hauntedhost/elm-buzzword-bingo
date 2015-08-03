@@ -6,8 +6,20 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Signal exposing (Address)
+import Event.Extra exposing (onInput)
+import List.Extra exposing (reject)
+import String.Extra exposing (isPresent, parseInt)
 import StartApp
-import BingoUtils as Utils
+
+-- DATA
+
+initialEntries : List Entry
+initialEntries =
+  [ newEntry "Doing Agile"     200 2,
+    newEntry "Rock-Star Ninja" 400 4,
+    newEntry "Future-Proof"    150 1,
+    newEntry "In The Cloud"    325 3
+  ]
 
 -- MODEL
 
@@ -20,26 +32,22 @@ type alias Entry =
 
 type alias Model =
   { entries: List Entry,
-    nextId: Int,
+    nextEntryId: Int,
     phraseInput: String,
     pointsInput: String
   }
 
-initialEntries : List Entry
-initialEntries =
-  [ newEntry "Doing Agile"     200 2,
-    newEntry "Rock-Star Ninja" 400 4,
-    newEntry "Future-Proof"    150 1,
-    newEntry "In The Cloud"    325 3
-  ]
-
 initialModel : Model
 initialModel =
   { entries = initialEntries,
-    nextId = length initialEntries + 1,
+    nextEntryId = initialNextEntryId,
     phraseInput = "",
     pointsInput = ""
   }
+
+initialNextEntryId =
+  let max a b = if a > b then a else b
+  in foldl (\e id -> max e.id id) 0 initialEntries + 1
 
 newEntry : String -> Int -> Int -> Entry
 newEntry phrase points id =
@@ -48,6 +56,19 @@ newEntry phrase points id =
     points = points,
     wasSpoken = False
   }
+
+newEntryFromModel : Model -> Entry
+newEntryFromModel model =
+  let
+    phraseInput = model.phraseInput
+    pointsInput = parseInt model.pointsInput
+    nextEntryId = model.nextEntryId
+  in
+    newEntry phraseInput pointsInput nextEntryId
+
+hasValidEntry : Model -> Bool
+hasValidEntry model =
+  all (\val -> isPresent val) [model.phraseInput, model.pointsInput]
 
 -- UPDATE
 
@@ -73,38 +94,24 @@ update action model =
     UpdatePhraseInput contents -> { model | phraseInput <- contents }
     UpdatePointsInput contents -> { model | pointsInput <- contents }
 
-hasValidEntry : Model -> Bool
-hasValidEntry model =
-  all (\val -> isPresent val) [model.phraseInput, model.pointsInput]
-
-isPresent : String -> Bool
-isPresent string = not (isEmpty string)
-
 addNewEntry : Model -> Model
 addNewEntry model =
   { model |
+      entries     <- newEntryFromModel model :: model.entries,
+      nextEntryId <- model.nextEntryId + 1,
       phraseInput <- "",
-      pointsInput <- "",
-      entries     <- entryFromModel model :: model.entries,
-      nextId      <- model.nextId + 1
+      pointsInput <- ""
   }
-
-entryFromModel : Model -> Entry
-entryFromModel model =
-  newEntry model.phraseInput (Utils.parseInt model.pointsInput) model.nextId
 
 deleteEntry : Int -> List Entry -> List Entry
 deleteEntry id entries =
   reject (\e -> e.id == id) entries
 
-reject : (a -> Bool) -> List a -> List a
-reject fn list =
-  filter (\n -> not (fn n)) list
-
 markEntry : Int -> List Entry -> List Entry
 markEntry id entries =
-  let mark e =
-    if e.id == id then { e | wasSpoken <- (not e.wasSpoken) } else e
+  let mark entry =
+    if | entry.id == id -> { entry | wasSpoken <- (not entry.wasSpoken) }
+       | otherwise      -> entry
   in
     map mark entries
 
@@ -113,79 +120,6 @@ sortEntries entries =
   sortBy .points entries
 
 -- VIEW
-
-title : String -> Int -> Html
-title message times =
-  message ++ " "
-    |> toUpper
-    |> repeat times
-    |> trimRight
-    |> text
-
-pageHeader : Html
-pageHeader =
-  h1 [ id "title" ] [ title "bingo!" 3 ]
-
-pageFooter : Html
-pageFooter =
-  footer [ ]
-    [ a [ href "http://seanomlor.com" ] [ text "Sean Omlor" ] ]
-
-entryItem : Address Action -> Entry -> Html
-entryItem address entry =
-  li
-    [ classList [ ("highlight", entry.wasSpoken) ],
-      onClick address (Mark entry.id) ]
-    [ span [ class "phrase" ] [ text entry.phrase ],
-      span [ class "points" ] [ text (toString entry.points) ],
-      button
-        [ class "delete", onClick address (Delete entry.id) ]
-        [ ]
-    ]
-
-totalPoints : List Entry -> Int
-totalPoints entries =
-  entries
-    |> filter .wasSpoken
-    |> foldl (\e sum -> sum + e.points) 0
-
-totalItem : Int -> Html
-totalItem total =
-  li
-    [ class "total" ]
-    [ span [ class "label" ] [ text "Total" ],
-      span [ class "points"] [ text (toString total) ]
-    ]
-
-entryList : Address Action -> List Entry -> Html
-entryList address entries =
-  let
-    entryItems = map (entryItem address) entries
-    items = entryItems ++ [ totalItem (totalPoints entries) ]
-  in
-    ul [ ] items
-
-entryForm : Address Action -> Model -> Html
-entryForm address model =
-  div [ ]
-    [ input
-        [ type' "text",
-          placeholder "Phrase",
-          value model.phraseInput,
-          autofocus True,
-          Utils.onInput address UpdatePhraseInput
-        ]
-        [ ],
-      input
-        [ type' "number",
-          placeholder "Points",
-          value model.pointsInput,
-          Utils.onInput address UpdatePointsInput
-        ]
-        [ ],
-      button [ class "add", onClick address Add ] [ text "Add" ],
-      h2 [ ] [ text (model.phraseInput ++ " " ++ model.pointsInput) ]
-    ]
 
 view : Signal.Address Action -> Model -> Html
 view address model =
@@ -198,6 +132,80 @@ view address model =
         [ text "Sort" ],
       pageFooter
     ]
+
+pageHeader : Html
+pageHeader =
+  h1 [ id "title" ] [ title "bingo!" 3 ]
+
+pageFooter : Html
+pageFooter =
+  footer [ ]
+    [ a [ href "http://seanomlor.com" ] [ text "Sean Omlor" ] ]
+
+title : String -> Int -> Html
+title message times =
+  message ++ " "
+    |> toUpper
+    |> repeat times
+    |> trimRight
+    |> text
+
+entryForm : Address Action -> Model -> Html
+entryForm address model =
+  div [ ]
+    [ input
+        [ type' "text",
+          placeholder "Phrase",
+          value model.phraseInput,
+          autofocus True,
+          onInput address UpdatePhraseInput
+        ]
+        [ ],
+      input
+        [ type' "number",
+          placeholder "Points",
+          value model.pointsInput,
+          onInput address UpdatePointsInput
+        ]
+        [ ],
+      button [ class "add", onClick address Add ] [ text "Add" ],
+      h2 [ ] [ text (model.phraseInput ++ " " ++ model.pointsInput) ]
+    ]
+
+entryList : Address Action -> List Entry -> Html
+entryList address entries =
+  let
+    entryItems = map (entryItem address) entries
+    items = entryItems ++ [ totalItem (totalPoints entries) ]
+  in
+    ul [ ] items
+
+entryItem : Address Action -> Entry -> Html
+entryItem address entry =
+  li
+    [ classList [ ("highlight", entry.wasSpoken) ],
+      id ("entry-id-" ++ toString entry.id),
+      onClick address (Mark entry.id) ]
+    [ span [ class "phrase" ] [ text entry.phrase ],
+      span [ class "points" ] [ text (toString entry.points) ],
+      button
+        [ class "delete", onClick address (Delete entry.id) ]
+        [ ]
+    ]
+
+totalItem : Int -> Html
+totalItem total =
+  li
+    [ class "total" ]
+    [ span [ class "label" ] [ text "Total"],
+      span [ class "points"] [ text (toString total) ]
+    ]
+
+totalPoints : List Entry -> Int
+totalPoints entries =
+  entries
+    |> filter .wasSpoken
+    |> foldl (\e sum -> sum + e.points) 0
 
 -- MAIN
 
