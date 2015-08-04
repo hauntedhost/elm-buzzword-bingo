@@ -4,13 +4,17 @@
   "description": "",
   "main": "index.html",
   "dependencies": {
+    "express": "^4.13.3",
     "gulp": "^3.9.0",
     "gulp-elm": "^0.2.0",
     "gulp-plumber": "^1.0.1",
-    "gulp-util": "^3.0.6"
+    "gulp-util": "^3.0.6",
+    "http-proxy": "^1.11.1"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "gulp elm",
+    "watch": "gulp elm watch",
+    "debug": "elm-reactor & node debug.js"
   },
   "author": "",
   "license": "ISC"
