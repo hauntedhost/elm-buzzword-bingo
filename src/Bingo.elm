@@ -1,5 +1,11 @@
 module Bingo where
 
+import Css exposing (Styles, setViewport)
+import Css.Background as Background
+import Css.Display as Display exposing (display)
+import Css.Flex as Flex
+import Css.Padding as Padding
+import Color exposing (Color, rgba, complement)
 import List exposing (all, filter, foldl, length, map, sortBy)
 import String exposing (isEmpty, repeat, toUpper, trimRight)
 import Html exposing (..)
@@ -121,9 +127,16 @@ sortEntries entries =
 
 -- VIEW
 
+containerStyle =
+  []
+    |> display Display.Flex
+    |> Flex.alignItems Flex.AICenter
+    |> Background.color (rgba 230 230 230 1)
+    |> Padding.all 20 20 20 20
+
 view : Signal.Address Action -> Model -> Html
 view address model =
-  div [ id "container" ]
+  div [ id "container", style <| containerStyle ]
     [ pageHeader,
       entryForm address model,
       entryList address model.entries,
